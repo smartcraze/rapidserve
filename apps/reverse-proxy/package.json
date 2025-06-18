@@ -1,5 +1,5 @@
 {
-  "name": "builder-backend",
+  "name": "reverse-proxy",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -9,15 +9,9 @@
     "dev": "bun run --watch index.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "@types/mime-types": "^3.0.1"
+    "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
-  },
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.830.0",
-    "ioredis": "^5.6.1",
-    "mime-types": "^3.0.1"
   }
 }
