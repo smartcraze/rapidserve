@@ -3,11 +3,6 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
-  "scripts": {
-    "start": "bun run dist/index.js",
-    "build": "bun build index.ts --outfile ./dist/index.js",
-    "dev": "bun run --watch index.ts"
-  },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/mime-types": "^3.0.1"
