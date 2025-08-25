@@ -1,84 +1,49 @@
-# Turborepo starter
+# Rapid Serve
 
-This Turborepo starter is maintained by the Turborepo core team.
+Rapid Serve is a Vercel-like deployment platform built from scratch. It allows users to deploy applications directly from a GitHub repository, with Docker-based builds, real-time build logs, and automatic hosting on custom subdomains.
 
-## Using this example
 
-Run the following command:
+### Architecture Diagram
 
-```sh
-npx create-turbo@latest
-```
+<img width="2150" height="1261" alt="diagram-export-25-08-2025-22_54_43" src="https://github.com/user-attachments/assets/a74eb16b-2fa0-42bb-babe-c9363fb0b735" />
 
-## What's inside?
+The system is composed of multiple services working together:
+- **Next.js Frontend** – user interface for submitting GitHub URLs, monitoring builds, and viewing logs.
+- **Builder Server** – fetches repo source, runs builds inside Docker containers on ECS, and uploads build outputs to S3.
+- **Proxy Server** – maps unique slugs to subdomains and serves the final application via CloudFront.
+- **WebSocket Server** – streams build logs from Redis pub/sub to the frontend in real time.
+- **Redis** – pub/sub messaging for logs and build events.
+- **Amazon ECS** – executes containerized builds.
+- **Amazon S3 + CloudFront** – stores build artifacts and delivers them to end users.
 
-This Turborepo includes the following packages/apps:
 
-### Apps and Packages
+## 🚀 Features
+- **GitHub Integration** – paste a repo URL and trigger builds.
+- **Docker Builds** – every project is built inside isolated ECS containers.
+- **Real-Time Logs** – build logs are streamed to the frontend using WebSockets and Redis pub/sub.
+- **Automatic Hosting** – each deployment gets a unique slug mapped to a subdomain.
+- **Artifact Storage** – build outputs are stored in Amazon S3 and served through CloudFront CDN.
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+## ⚙️ Workflow
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+1. User submits a GitHub repo URL from the frontend.  
+2. Builder Server spins up an ECS Docker container and starts the build.  
+3. Build logs are published to Redis.  
+4. WebSocket Server consumes the logs and streams them live to the frontend.  
+5. Once the build completes, artifacts are uploaded to S3.  
+6. Proxy Server maps the unique slug to a subdomain, pointing to CloudFront → S3.  
+7. Users can now access the deployed app at its unique subdomain.  
 
-### Utilities
+## 📦 Tech Stack
+- **Frontend:** Next.js  
+- **Backend:** Node.js (Builder, Proxy, WebSocket servers)  
+- **Containerization:** Docker + ECS  
+- **Storage & Hosting:** AWS S3 + CloudFront  
+- **Messaging:** Redis Pub/Sub  
+- **Infrastructure:** AWS  
 
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm build
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm dev
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-npx turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-npx turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+## 🔮 Future Improvements
+- CI/CD integration for automatic redeploys on push.  
+- Multi-region deployments.  
+- Custom domain support.  
+- Build caching for faster deployments.  
