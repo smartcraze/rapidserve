@@ -3,29 +3,30 @@ import path from 'path'
 import fs from 'fs'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import mime from 'mime-types'
-import Redis from 'ioredis'
+// import Redis from 'ioredis'
 
-const publisher = new Redis('your_redis_url')
+// const publisher = new Redis('your_redis_url')
 
 const s3Client = new S3Client({
-  region: 'your-region',
+  region: 'ap-south-1',
   credentials: {
-    accessKeyId: 'your-access-key',
-    secretAccessKey: 'your-secret-key',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
   },
 })
 
 const PROJECT_ID = process.env.PROJECT_ID as string
 
 function publishLog(log: string): void {
-  publisher.publish(`logs:${PROJECT_ID}`, JSON.stringify({ log }))
+  // publisher.publish(`logs:${PROJECT_ID}`, JSON.stringify({ log }))
+  console.log(log)
 }
 
 async function init(): Promise<void> {
   console.log('Executing index.ts')
   publishLog('Build Started...')
   const outDirPath = path.join(__dirname, 'output')
-
+  // check if i have  to use the npm or bun 
   const p = exec(`cd ${outDirPath} && npm install && npm run build`)
 
   p.stdout?.on('data', (data: string | Buffer) => {
