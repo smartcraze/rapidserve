@@ -1,11 +1,24 @@
-FROM node:20-alpine
+FROM ubuntu:focal
+
+RUN apt-get update
+RUN apt-get install -y curl
+RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
+RUN apt-get upgrade -y
+RUN apt-get install -y nodejs
+
+RUN apt-get install git -y
 
 WORKDIR /home/app
 
-COPY package*.json ./
+COPY package*.json .
+RUN npm install
 
-RUN npm install 
+COPY main.sh main.sh
+COPY index.ts index.ts
+COPY tsconfig.json tsconfig.json
+RUN npm run build
 
-COPY . .
+RUN chmod +x main.sh
+RUN chmod +x dist/index.js
 
-
+ENTRYPOINT [ "/home/app/main.sh" ]
