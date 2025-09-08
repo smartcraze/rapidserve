@@ -16,12 +16,10 @@ const s3Client = new S3Client({
 
 const PROJECT_ID = process.env.PROJECT_ID as string
 
-
-
 async function init(): Promise<void> {
   console.log('Executing index.ts')
   const outDirPath = path.join(__dirname, 'output')
-  // check if i have  to use the npm or bun 
+  // check if i have  to use the npm or bun
   const p = exec(`cd ${outDirPath} && npm install && npm run build`)
 
   p.stdout?.on('data', (data: string | Buffer) => {
@@ -41,12 +39,13 @@ async function init(): Promise<void> {
 
     let distFolderContents: string[]
     try {
-      distFolderContents = fs.readdirSync(distFolderPath, { recursive: true }) as string[]
+      distFolderContents = fs.readdirSync(distFolderPath, {
+        recursive: true,
+      }) as string[]
     } catch (err) {
       console.error('Dist folder not found')
       return
     }
-
 
     for (const file of distFolderContents) {
       const filePath = path.join(distFolderPath, file)
