@@ -6,10 +6,10 @@ import Redis from "ioredis";
 const PORT = 9000;
 
 const ecsClient = new ECSClient({
-  region: 'ap-south-1', 
+  region: "ap-south-1",
   credentials: {
-    accessKeyId: "", 
-    secretAccessKey: "", 
+    accessKeyId: "",
+    secretAccessKey: "",
   },
 });
 
@@ -22,7 +22,10 @@ const subscriber = new Redis(process.env.REDIS_URL!);
 const channels: Record<string, Set<import("bun").ServerWebSocket<any>>> = {};
 
 // Store WebSocket data
-const wsData = new WeakMap<import("bun").ServerWebSocket<any>, { joinedChannels: string[] }>();
+const wsData = new WeakMap<
+  import("bun").ServerWebSocket<any>,
+  { joinedChannels: string[] }
+>();
 
 subscriber.psubscribe("logs:*");
 
@@ -38,7 +41,7 @@ serve({
   port: PORT,
   fetch(req, server) {
     const url = new URL(req.url);
-    
+
     // Handle WebSocket upgrade
     if (req.headers.get("upgrade") === "websocket") {
       const success = server.upgrade(req);
@@ -54,7 +57,8 @@ serve({
     }
 
     if (url.pathname === "/") {
-      return new Response(`
+      return new Response(
+        `
         <!DOCTYPE html>
         <html>
         <head>
@@ -86,9 +90,11 @@ serve({
           </script>
         </body>
         </html>
-      `, {
-        headers: { "Content-Type": "text/html" }
-      });
+      `,
+        {
+          headers: { "Content-Type": "text/html" },
+        },
+      );
     }
 
     return new Response("Not Found", { status: 404 });
@@ -102,19 +108,19 @@ serve({
     message(ws, message) {
       try {
         const data = JSON.parse(message.toString());
-        
+
         if (data.action === "subscribe" && data.channel) {
           const channel = data.channel;
           const clientData = wsData.get(ws);
-          
+
           if (clientData) {
             clientData.joinedChannels.push(channel);
-            
+
             if (!channels[channel]) {
               channels[channel] = new Set();
             }
             channels[channel].add(ws);
-            
+
             ws.send(JSON.stringify({ message: `Joined ${channel}` }));
             console.log(`Client subscribed to channel: ${channel}`);
           }
@@ -128,17 +134,17 @@ serve({
     close(ws, code, message) {
       console.log(`WebSocket connection closed with code: ${code}`);
       const clientData = wsData.get(ws);
-      
+
       if (clientData) {
         // Remove the WebSocket from all channels it joined
         for (const channel of clientData.joinedChannels) {
           channels[channel]?.delete(ws);
-          
+
           if (channels[channel]?.size === 0) {
             delete channels[channel];
           }
         }
-        
+
         wsData.delete(ws);
       }
     },
@@ -151,7 +157,7 @@ serve({
 
 async function handleProjectCreation(req: Request) {
   try {
-    const body = await req.json() as { gitURL?: string; slug?: string };
+    const body = (await req.json()) as { gitURL?: string; slug?: string };
     const { gitURL, slug } = body;
     const projectSlug = slug || generateSlug();
 
@@ -163,7 +169,7 @@ async function handleProjectCreation(req: Request) {
       networkConfiguration: {
         awsvpcConfiguration: {
           assignPublicIp: "ENABLED",
-          subnets: ["", "", ""], 
+          subnets: ["", "", ""],
           securityGroups: [""],
         },
       },
@@ -190,7 +196,7 @@ async function handleProjectCreation(req: Request) {
           url: `http://${projectSlug}.localhost:8000`,
         },
       }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch (err: any) {
     console.error(err);

@@ -10,7 +10,7 @@ import Redis from "ioredis";
 const execAsync = promisify(exec);
 
 const s3Client = new S3Client({
-  region: 'ap-south-1',
+  region: "ap-south-1",
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
@@ -21,7 +21,9 @@ const BUCKET_NAME = "rapid-serve-outputs";
 const PROJECT_ID = process.env.PROJECT_ID;
 
 if (!BUCKET_NAME || !PROJECT_ID) {
-  console.error("ERROR: AWS_S3_BUCKET or PROJECT_ID is missing in environment variables.");
+  console.error(
+    "ERROR: AWS_S3_BUCKET or PROJECT_ID is missing in environment variables.",
+  );
   process.exit(1);
 }
 
@@ -65,7 +67,8 @@ async function buildProject() {
     const outputDirectory = path.join(__dirname, "output");
 
     if (!fs.existsSync(outputDirectory)) {
-      const error = "❌ ERROR: Output directory not found. The cloning process might have failed.";
+      const error =
+        "❌ ERROR: Output directory not found. The cloning process might have failed.";
       console.error(error);
       publishLog(error);
       process.exit(1);
@@ -109,7 +112,9 @@ async function uploadFilesToS3(files: string[], baseDirectory: string) {
       const relativeFilePath = path.relative(baseDirectory, filePath);
       const mimeType = mime.lookup(filePath) || "application/octet-stream";
 
-      publishLog(`📤 Uploading file: ${relativeFilePath} (MIME Type: ${mimeType})`);
+      publishLog(
+        `📤 Uploading file: ${relativeFilePath} (MIME Type: ${mimeType})`,
+      );
 
       const uploadCommand = new PutObjectCommand({
         Bucket: BUCKET_NAME,
@@ -124,14 +129,13 @@ async function uploadFilesToS3(files: string[], baseDirectory: string) {
         await publisher.quit();
         console.log("Container finished work, exiting...");
         process.exit(0);
-        
       } catch (error: any) {
         const msg = `❌ ERROR: Failed to upload ${relativeFilePath}. ${error.message}`;
         console.error(msg);
         publishLog(msg);
         process.exit(1);
       }
-    })
+    }),
   );
 }
 
