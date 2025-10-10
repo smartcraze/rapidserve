@@ -9,3 +9,4 @@ coverage/
 *.iml
 npm-debug.log*
 .env.local
+builder/.env.local
