@@ -2,23 +2,34 @@ import { serve } from "bun";
 import { generateSlug } from "random-word-slugs";
 import { ECSClient, RunTaskCommand } from "@aws-sdk/client-ecs";
 import Redis from "ioredis";
+import { runBuilderContainer, getProjectSlug } from "./docker-runner";
 
 const PORT = 9000;
+const USE_LOCAL_DOCKER = process.env.USE_LOCAL_DOCKER !== "false"; // Default to using local Docker
 
 const ecsClient = new ECSClient({
   region: "ap-south-1",
   credentials: {
-    accessKeyId: "",
-    secretAccessKey: "",
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
   },
 });
 
 const config = {
-  CLUSTER: "",
-  TASK: "",
+  CLUSTER: process.env.ECS_CLUSTER || "",
+  TASK: process.env.ECS_TASK || "",
 };
 
-const subscriber = new Redis(process.env.REDIS_URL!);
+// Set up Redis connection with proper error handling
+const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+const subscriber = new Redis(REDIS_URL, {
+  retryStrategy(times) {
+    const delay = Math.min(times * 100, 3000);
+    console.log(`Retrying Redis connection in ${delay}ms...`);
+    return delay;
+  },
+});
+
 const channels: Record<string, Set<import("bun").ServerWebSocket<any>>> = {};
 
 // Store WebSocket data
@@ -27,13 +38,39 @@ const wsData = new WeakMap<
   { joinedChannels: string[] }
 >();
 
-subscriber.psubscribe("logs:*");
+// Handle Redis connection events
+subscriber.on("connect", () => {
+  console.log("Redis connected successfully");
+});
+
+subscriber.on("ready", () => {
+  console.log("Redis ready, subscribing to channels");
+  subscriber.psubscribe("logs:*", (err) => {
+    if (err) {
+      console.error("Failed to subscribe to logs:* pattern:", err);
+    } else {
+      console.log("Successfully subscribed to logs:* pattern");
+    }
+  });
+});
+
+subscriber.on("error", (err) => {
+  console.error("Redis error:", err);
+});
+
+subscriber.on("close", () => {
+  console.log("Redis connection closed");
+});
 
 subscriber.on("pmessage", (pattern, channel, message) => {
-  if (channels[channel]) {
-    for (const ws of channels[channel]) {
-      ws.send(message);
+  try {
+    if (channels[channel]) {
+      for (const ws of channels[channel]) {
+        ws.send(message);
+      }
     }
+  } catch (error) {
+    console.error("Error sending WebSocket message:", error);
   }
 });
 
@@ -46,55 +83,17 @@ serve({
     if (req.headers.get("upgrade") === "websocket") {
       const success = server.upgrade(req);
       if (success) {
-        return; // do not return a Response
+        return;
       }
       return new Response("Upgrade failed", { status: 500 });
     }
 
-    // Handle HTTP requests
     if (req.method === "POST" && url.pathname === "/project") {
       return handleProjectCreation(req);
     }
 
     if (url.pathname === "/") {
-      return new Response(
-        `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>WebSocket Test</title>
-        </head>
-        <body>
-          <h1>WebSocket Server Running</h1>
-          <div id="messages"></div>
-          <input type="text" id="channelInput" placeholder="Enter channel name" />
-          <button onclick="subscribe()">Subscribe</button>
-          <script>
-            const ws = new WebSocket('ws://localhost:${PORT}');
-            const messages = document.getElementById('messages');
-            
-            ws.onopen = () => {
-              messages.innerHTML += '<p>Connected to WebSocket</p>';
-            };
-            
-            ws.onmessage = (event) => {
-              messages.innerHTML += '<p>Received: ' + event.data + '</p>';
-            };
-            
-            function subscribe() {
-              const channel = document.getElementById('channelInput').value;
-              if (channel) {
-                ws.send(JSON.stringify({ action: 'subscribe', channel: channel }));
-              }
-            }
-          </script>
-        </body>
-        </html>
-      `,
-        {
-          headers: { "Content-Type": "text/html" },
-        },
-      );
+      return new Response("RapidServe API is running", { status: 200 });
     }
 
     return new Response("Not Found", { status: 404 });
@@ -157,44 +156,102 @@ serve({
 
 async function handleProjectCreation(req: Request) {
   try {
-    const body = (await req.json()) as { gitURL?: string; slug?: string };
-    const { gitURL, slug } = body;
-    const projectSlug = slug || generateSlug();
+    const body = (await req.json()) as {
+      gitURL?: string;
+      slug?: string;
+      useECS?: boolean;
+    };
+    const { gitURL, slug, useECS } = body;
 
-    const command = new RunTaskCommand({
-      cluster: config.CLUSTER,
-      taskDefinition: config.TASK,
-      launchType: "FARGATE",
-      count: 1,
-      networkConfiguration: {
-        awsvpcConfiguration: {
-          assignPublicIp: "ENABLED",
-          subnets: ["", "", ""],
-          securityGroups: [""],
-        },
-      },
-      overrides: {
-        containerOverrides: [
-          {
-            name: "builder-image",
-            environment: [
-              { name: "GIT_REPOSITORY__URL", value: gitURL },
-              { name: "PROJECT_ID", value: projectSlug },
-            ],
+    if (!gitURL) {
+      return new Response(
+        JSON.stringify({ error: "Git repository URL is required" }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    const projectSlug = getProjectSlug(slug);
+    const useEcsDeployment = useECS || !USE_LOCAL_DOCKER;
+
+    let result: any;
+
+    if (useEcsDeployment) {
+      // ECS deployment method (for production)
+      console.log(`Using ECS deployment for project ${projectSlug}`);
+
+      if (!config.CLUSTER || !config.TASK) {
+        return new Response(
+          JSON.stringify({
+            error:
+              "ECS configuration missing. Set ECS_CLUSTER and ECS_TASK environment variables",
+          }),
+          { status: 500, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      const command = new RunTaskCommand({
+        cluster: config.CLUSTER,
+        taskDefinition: config.TASK,
+        launchType: "FARGATE",
+        count: 1,
+        networkConfiguration: {
+          awsvpcConfiguration: {
+            assignPublicIp: "ENABLED",
+            subnets: ["", "", ""],
+            securityGroups: [""],
           },
-        ],
-      },
-    });
+        },
+        overrides: {
+          containerOverrides: [
+            {
+              name: "builder-image",
+              environment: [
+                { name: "GIT_REPOSITORY__URL", value: gitURL },
+                { name: "PROJECT_ID", value: projectSlug },
+              ],
+            },
+          ],
+        },
+      });
 
-    await ecsClient.send(command);
+      await ecsClient.send(command);
+
+      result = {
+        deploymentType: "ecs",
+        projectSlug,
+        url: `http://${projectSlug}.localhost:8000`,
+      };
+    } else {
+      // Local Docker deployment method (for development)
+      console.log(`Using local Docker deployment for project ${projectSlug}`);
+
+      try {
+        const containerInfo = await runBuilderContainer({
+          gitURL,
+          projectSlug,
+          redisURL: process.env.REDIS_URL,
+        });
+
+        result = {
+          deploymentType: "docker",
+          containerId: containerInfo.containerId,
+          projectSlug,
+          url: `http://${projectSlug}.localhost:8000`,
+        };
+      } catch (error: any) {
+        return new Response(
+          JSON.stringify({
+            error: `Docker deployment failed: ${error.message}`,
+          }),
+          { status: 500, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
 
     return new Response(
       JSON.stringify({
         status: "queued",
-        data: {
-          projectSlug,
-          url: `http://${projectSlug}.localhost:8000`,
-        },
+        data: result,
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
