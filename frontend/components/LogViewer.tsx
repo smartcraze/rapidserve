@@ -8,11 +8,9 @@ interface LogViewerProps {
 }
 
 export default function LogViewer({ projectSlug }: LogViewerProps) {
-  const [channel, setChannel] = useState<string>(
-    projectSlug ? `logs:${projectSlug}` : "",
-  );
+  const [projectId, setProjectId] = useState<string>(projectSlug || "");
   const { messages, isConnected, error, subscribe, clearMessages } =
-    useWebSocket(projectSlug ? `logs:${projectSlug}` : undefined);
+    useWebSocket(projectSlug);
   const logsContainerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
 
@@ -37,8 +35,8 @@ export default function LogViewer({ projectSlug }: LogViewerProps) {
   // Handle subscribe form submission
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
-    if (channel) {
-      subscribe(channel);
+    if (projectId) {
+      subscribe(projectId);
     }
   };
 
@@ -50,9 +48,9 @@ export default function LogViewer({ projectSlug }: LogViewerProps) {
         <form onSubmit={handleSubscribe} className="flex mt-2 gap-2">
           <input
             type="text"
-            value={channel}
-            onChange={(e) => setChannel(e.target.value)}
-            placeholder="Enter channel (e.g. logs:project-slug)"
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+            placeholder="Enter project ID"
             className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md 
                       bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 
                       focus:ring-blue-500 dark:focus:ring-blue-400"

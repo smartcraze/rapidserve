@@ -15,7 +15,51 @@ export interface WebSocketMessage {
 }
 
 // Base URL for WebSocket connections
-const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:9000";
+const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
+
+// Message queue processor with delay
+class MessageQueue {
+  private queue: WebSocketMessage[] = [];
+  private processing: boolean = false;
+  private setMessagesFn: React.Dispatch<
+    React.SetStateAction<WebSocketMessage[]>
+  >;
+
+  constructor(
+    setMessagesFn: React.Dispatch<React.SetStateAction<WebSocketMessage[]>>,
+  ) {
+    this.setMessagesFn = setMessagesFn;
+  }
+
+  push(message: WebSocketMessage) {
+    this.queue.push(message);
+    if (!this.processing) {
+      this.processQueue();
+    }
+  }
+
+  private async processQueue() {
+    if (this.queue.length === 0) {
+      this.processing = false;
+      return;
+    }
+
+    this.processing = true;
+    const message = this.queue.shift()!;
+
+    this.setMessagesFn((prev) => [...prev, message]);
+
+    // Add a small delay between messages (50ms)
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    this.processQueue();
+  }
+
+  clear() {
+    this.queue = [];
+    this.processing = false;
+  }
+}
 
 /**
  * Hook for using WebSocket connections with auto-reconnect
@@ -27,10 +71,12 @@ export function useWebSocket(channelId?: string) {
   const [error, setError] = useState<string | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const messageQueueRef = useRef<MessageQueue>(new MessageQueue(setMessages));
 
   // Clear messages
   const clearMessages = useCallback(() => {
     setMessages([]);
+    messageQueueRef.current?.clear();
   }, []);
 
   // Connect to WebSocket
@@ -58,10 +104,11 @@ export function useWebSocket(channelId?: string) {
           socket.send(
             JSON.stringify({
               action: "subscribe",
-              channel: channelId,
+              projectId: channelId,
             }),
           );
         }
+        console.log("WebSocket connected");
       };
 
       socket.onclose = (event) => {
@@ -83,28 +130,27 @@ export function useWebSocket(channelId?: string) {
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          console.log("Received WebSocket message:", data);
 
           // Handle different message types
-          if (data.log) {
-            setMessages((prev) => [
-              ...prev,
-              {
-                type: "log",
-                content: data.log,
-                timestamp: Date.now(),
-              },
-            ]);
-          } else if (data.message) {
-            setMessages((prev) => [
-              ...prev,
-              {
-                type: "system",
-                content: data.message,
-                timestamp: Date.now(),
-              },
-            ]);
-          } else if (data.error) {
-            setError(data.error);
+          if (data.status === "error") {
+            setError(data.message);
+          } else if (data.status === "subscribed") {
+            messageQueueRef.current?.push({
+              type: "system",
+              content: data.message || `Subscribed to channel ${data.channel}`,
+              timestamp: Date.now(),
+            });
+          } else {
+            // Handle log messages that come as {log: string}
+            const logContent =
+              data.log ||
+              (typeof data === "string" ? data : JSON.stringify(data));
+            messageQueueRef.current?.push({
+              type: "log",
+              content: logContent,
+              timestamp: Date.now(),
+            });
           }
         } catch (err) {
           console.error("Failed to parse WebSocket message", err);
@@ -136,7 +182,7 @@ export function useWebSocket(channelId?: string) {
       socketRef.current.send(
         JSON.stringify({
           action: "subscribe",
-          channel: newChannelId,
+          projectId: newChannelId,
         }),
       );
     },
