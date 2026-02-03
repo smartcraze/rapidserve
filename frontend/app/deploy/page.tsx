@@ -218,7 +218,6 @@ export default function DeployPage() {
                           placeholder="my-awesome-app"
                           value={slug}
                           onChange={(e) => setSlug(e.target.value)}
-                          disabled={status === "deploying"}
                           className="bg-background/40 border-border focus:border-primary/50"
                         />
                       </div>
@@ -233,7 +232,6 @@ export default function DeployPage() {
                             className="pl-9 bg-background/40 border-border focus:border-primary/50"
                             value={gitUrl}
                             onChange={(e) => setGitUrl(e.target.value)}
-                            disabled={status === "deploying"}
                           />
                         </div>
                       </div>
@@ -242,7 +240,7 @@ export default function DeployPage() {
                         type="submit"
                         className="w-full font-bold"
                         size="lg"
-                        disabled={status === "deploying" || !slug || !gitUrl}
+                        disabled={!slug || !gitUrl}
                       >
                         Continue <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>

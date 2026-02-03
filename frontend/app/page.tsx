@@ -11,6 +11,7 @@ import {
   Cpu,
   ShieldCheck,
   Globe,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -139,6 +140,86 @@ export default function LandingPage() {
                 </div>
               </div>
             </motion.div>
+
+            {/* Hand-drawn Arrow pointing to video */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1, duration: 1 }}
+              className="absolute bottom-10 right-10 xl:right-32 hidden lg:block"
+            >
+              <div className="flex flex-col items-center gap-2 rotate-12">
+                <span className="text-xl font-medium text-muted-foreground font-serif italic">
+                  Watch the demo!
+                </span>
+                <svg
+                  width="100"
+                  height="100"
+                  viewBox="0 0 120 120"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="text-primary/70 -mt-2"
+                >
+                  <path
+                    d="M30 10C50 10 70 30 70 90"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M45 75L70 90L95 65"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Video Demo Section */}
+        <section className="py-20 bg-muted/10 border-b border-border/50">
+          <div className="container mx-auto px-6 max-w-6xl">
+            <div className="text-center mb-10 space-y-4">
+              <h2 className="text-3xl font-bold tracking-tight">
+                See it in action
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                Watch the full walkthrough of RapidServe deploying an
+                application from scratch.
+              </p>
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 max-w-2xl mx-auto mt-6 text-left space-y-3">
+                <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-500 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Why watch this video?
+                </p>
+                <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                  <li>
+                    <strong>Full System Tour:</strong> See the complete Backend,
+                    AWS ECS, and Frontend integration working together.
+                  </li>
+                  <li>
+                    <strong>Live Environment Paused:</strong> Due to AWS cost
+                    constraints, the live demo backend is currently paused.
+                  </li>
+                  <li>
+                    <strong>Real-time Pipeline:</strong> Observe the actual
+                    build and deployment logs as they happen.
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-border/50 shadow-2xl bg-black/5">
+              <iframe
+                src="https://www.tella.tv/video/vid_cml6lghgs00e104jr2zxa0u56/embed?b=0&title=0&a=1&loop=0&t=0&muted=0&wt=0"
+                className="absolute top-0 left-0 w-full h-full"
+                allowFullScreen
+                allow="autoplay; encrypted-media"
+                title="RapidServe Demo"
+              ></iframe>
+            </div>
           </div>
         </section>
 
