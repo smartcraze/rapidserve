@@ -1,182 +1,295 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { io, Socket } from "socket.io-client";
+import {
+  Copy,
+  Terminal,
+  Loader2,
+  Rocket,
+  Cloud,
+  Github,
+  CheckCircle2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
-const API_URL = "http://localhost:4000"; // Docker Runner
-const WS_URL = "ws://localhost:8080"; // WS Server
+const API_URL = "http://localhost:9000";
+const SOCKET_URL = "http://localhost:9002";
 
 export default function Home() {
   const [gitUrl, setGitUrl] = useState("");
-  const [projectId, setProjectId] = useState("");
-  const [status, setStatus] = useState<"idle" | "deploying" | "deployed">(
-    "idle",
-  );
+  const [slug, setSlug] = useState("");
+  const [status, setStatus] = useState<
+    "idle" | "deploying" | "deployed" | "error"
+  >("idle");
   const [logs, setLogs] = useState<string[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string>("");
 
-  const socketRef = useRef<WebSocket | null>(null);
-  const logContainerRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<Socket | null>(null);
+  const logEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll logs
   useEffect(() => {
-    if (logContainerRef.current) {
-      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-    }
+    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
 
-  const connectSocket = (id: string) => {
-    if (socketRef.current) socketRef.current.close();
-
-    const ws = new WebSocket(WS_URL);
-    socketRef.current = ws;
-
-    ws.onopen = () => {
-      console.log("Connected to logs");
-      ws.send(JSON.stringify({ action: "subscribe", projectId: id }));
-      setLogs((prev) => [...prev, "🔌 Connected to log stream..."]);
+  useEffect(() => {
+    return () => {
+      socketRef.current?.disconnect();
     };
+  }, []);
 
-    ws.onmessage = (event) => {
+  const connectSocket = (projectSlug: string) => {
+    if (socketRef.current) socketRef.current.disconnect();
+
+    const socket = io(SOCKET_URL);
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("Connected to Log Server");
+      socket.emit("subscribe", `logs:${projectSlug}`); // Subscribe to Redis channel
+      setLogs((prev) => [...prev, "🔌 Connected to build server..."]);
+    });
+
+    socket.on("message", (message: string) => {
       try {
-        const data = JSON.parse(event.data);
-        // If the message is a JSON object with a log field, use that
+        const data = JSON.parse(message);
         if (data.log) {
-          // Check if log is valid string
-          const cleanLog =
-            typeof data.log === "string" ? data.log : JSON.stringify(data.log);
-          setLogs((prev) => [...prev, cleanLog]);
-        } else if (typeof data === "string") {
-          setLogs((prev) => [...prev, data]);
+          setLogs((prev) => [...prev, data.log]);
+        } else {
+          setLogs((prev) => [...prev, message]);
         }
-      } catch (e) {
-        // Fallback for plain text
-        setLogs((prev) => [...prev, event.data]);
+      } catch {
+        setLogs((prev) => [...prev, message]);
       }
-    };
+    });
 
-    ws.onclose = () => {
-      console.log("Disconnected");
-    };
+    socket.on("connect_error", (err) => {
+      console.error("Socket error:", err);
+      setLogs((prev) => [...prev, "❌ Connection error to log server"]);
+    });
   };
 
   const handleDeploy = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!gitUrl || !projectId) return;
+    if (!gitUrl || !slug) return;
 
     setStatus("deploying");
     setLogs([]);
-    connectSocket(projectId);
+    setPreviewUrl("");
+
+    // Connect to socket immediately to catch early logs
+    connectSocket(slug);
 
     try {
-      const res = await fetch(`${API_URL}/rundocker`, {
+      const res = await fetch(`${API_URL}/project`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, gitURL: gitUrl }),
+        body: JSON.stringify({ gitURL: gitUrl, slug }),
       });
 
       if (!res.ok) throw new Error("Failed to start deployment");
 
       const data = await res.json();
-      console.log("Deployment started:", data);
+      console.log("Deployment initiated:", data);
 
-      // Assume success, set preview URL (using the subdomain logic)
-      setPreviewUrl(`http://${projectId}.localhost:8000`);
+      // Assume deployment logic takes some time.
+      // Ideally backend sends a 'deployment-complete' event, but for now we set the URL.
+      setPreviewUrl(`http://${slug}.localhost:8000`); // Adjust domain as needed
+
+      // Keep state as deploying until confirmed?
+      // For this demo, let's switch to deployed after a delay or just show the link.
+      setTimeout(() => {
+        setStatus("deployed");
+      }, 5000);
     } catch (err) {
       console.error(err);
-      setLogs((prev) => [...prev, "❌ Error starting deployment"]);
-      setStatus("idle");
+      setStatus("error");
+      setLogs((prev) => [...prev, "❌ API Error: Failed to start ECS Task"]);
     }
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-12 bg-gray-950 text-gray-100 font-sans">
-      <div className="z-10 max-w-3xl w-full items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold mb-8 text-blue-400">RapidServe</h1>
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
+            <Cloud className="w-6 h-6 text-primary" />
+            <span>RapidServe</span>
+          </div>
+          <a
+            href="https://github.com/suraj/rapidserve"
+            target="_blank"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Github className="w-5 h-5" />
+          </a>
+        </div>
+      </header>
 
-        <div className="bg-gray-900 border border-gray-800 p-6 rounded-lg shadow-xl mb-8">
-          <form onSubmit={handleDeploy} className="space-y-4">
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-400">
-                Project ID (Slug)
-              </label>
-              <input
-                type="text"
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-                placeholder="my-app-1"
-                className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                required
-              />
-            </div>
+      <main className="flex-1 container mx-auto px-4 py-12 flex flex-col md:flex-row gap-8">
+        {/* Left Panel: Configuration */}
+        <div className="w-full md:w-1/2 lg:w-5/12 space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
+              Deploy from GitHub <br />
+              <span className="text-primary">in seconds.</span>
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Enter your repository and let our AWS ECS infrastructure handle
+              the rest.
+            </p>
+          </div>
 
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-400">
-                GitHub Repository URL
-              </label>
-              <input
-                type="url"
-                value={gitUrl}
-                onChange={(e) => setGitUrl(e.target.value)}
-                placeholder="https://github.com/username/repo"
-                className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                required
-              />
-            </div>
+          <Card className="border-border/50 shadow-lg">
+            <CardHeader>
+              <CardTitle>New Deployment</CardTitle>
+              <CardDescription>
+                Configure your project details below.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleDeploy} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="slug">Project Slug</Label>
+                  <Input
+                    id="slug"
+                    placeholder="my-awesome-app"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    disabled={status === "deploying"}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Your app will be live at http://{slug || "..."}
+                    .localhost:8000
+                  </p>
+                </div>
 
-            <button
-              type="submit"
-              disabled={status === "deploying"}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {status === "deploying" ? "Deploying..." : "Deploy 🚀"}
-            </button>
-          </form>
+                <div className="space-y-2">
+                  <Label htmlFor="gitUrl">GitHub Repository</Label>
+                  <div className="relative">
+                    <Github className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="gitUrl"
+                      placeholder="https://github.com/username/repo"
+                      className="pl-9"
+                      value={gitUrl}
+                      onChange={(e) => setGitUrl(e.target.value)}
+                      disabled={status === "deploying"}
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  disabled={status === "deploying" || !slug || !gitUrl}
+                >
+                  {status === "deploying" ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deploying...
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="mr-2 h-4 w-4" />
+                      Launch Project
+                    </>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {status === "deployed" && (
+            <Card className="bg-primary/5 border-primary/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2 text-primary">
+                  <CheckCircle2 className="w-5 h-5" />
+                  Deployment Successful!
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="bg-background border rounded-md p-3 flex items-center justify-between">
+                    <a
+                      href={previewUrl}
+                      target="_blank"
+                      className="text-sm font-medium hover:underline text-primary truncate"
+                    >
+                      {previewUrl}
+                    </a>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      onClick={() => navigator.clipboard.writeText(previewUrl)}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Button className="w-full" variant="outline" asChild>
+                    <a href={previewUrl} target="_blank">
+                      Visit Live App
+                    </a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
-        {status !== "idle" && (
-          <div className="space-y-4">
-            {previewUrl && (
-              <div className="bg-green-900/20 border border-green-800 p-4 rounded text-center">
-                <p className="text-green-400">Application deployed to:</p>
-                <a
-                  href={previewUrl}
-                  target="_blank"
-                  className="text-xl font-bold hover:underline"
-                >
-                  {previewUrl}
-                </a>
-              </div>
+        {/* Right Panel: Logs */}
+        <div className="w-full md:w-1/2 lg:w-7/12 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-base font-semibold flex items-center gap-2">
+              <Terminal className="w-4 h-4" />
+              Build Logs
+            </Label>
+            {status === "deploying" && (
+              <span className="flex h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
             )}
-
-            <div className="bg-black border border-gray-800 rounded-lg overflow-hidden">
-              <div className="bg-gray-900 px-4 py-2 border-b border-gray-800 flex justify-between items-center">
-                <span className="text-gray-400">Build Logs</span>
-                <div className="flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                </div>
-              </div>
-              <div
-                ref={logContainerRef}
-                className="h-[400px] overflow-y-auto p-4 font-mono text-xs md:text-sm text-green-400 bg-black space-y-1"
-              >
-                {logs.map((log, i) => (
-                  <div
-                    key={i}
-                    className="break-all border-b border-gray-900/50 pb-1"
-                  >
-                    {log}
-                  </div>
-                ))}
-                {logs.length === 0 && (
-                  <span className="text-gray-600">Waiting for logs...</span>
-                )}
-              </div>
-            </div>
           </div>
-        )}
-      </div>
-    </main>
+
+          <Card className="flex-1 bg-black border-slate-800 text-slate-300 font-mono text-xs md:text-sm overflow-hidden flex flex-col min-h-[500px] shadow-2xl">
+            <ScrollArea className="flex-1 p-4 h-full">
+              {logs.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-4 opacity-50 min-h-[400px]">
+                  <Terminal className="w-12 h-12" />
+                  <p>Ready to deploy. Logs will appear here.</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {logs.map((log, i) => (
+                    <div
+                      key={i}
+                      className="break-all border-l-2 border-transparent hover:border-slate-700 pl-2 py-0.5"
+                    >
+                      <span className="opacity-50 select-none mr-2">
+                        {new Date().toLocaleTimeString()}
+                      </span>
+                      {log}
+                    </div>
+                  ))}
+                  <div ref={logEndRef} />
+                </div>
+              )}
+            </ScrollArea>
+          </Card>
+        </div>
+      </main>
+    </div>
   );
 }

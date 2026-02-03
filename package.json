@@ -16,10 +16,8 @@
   },
   "scripts": {
     "prepare": "husky",
-    "dev": "concurrently \"bun run dev:frontend\" \"bun run dev:proxy\" \"bun run dev:ws\" \"bun run dev:runner\"",
+    "dev": "concurrently \"bun run dev:frontend\" \"bun run dev:proxy\"",
     "dev:frontend": "cd frontend && bun run dev",
-    "dev:proxy": "cd proxy-server && bun run dev",
-    "dev:ws": "cd ws-api-server && bun run dev",
-    "dev:runner": "cd docker-runner && bun run dev"
+    "dev:proxy": "cd proxy-server && bun run dev"
   }
 }
