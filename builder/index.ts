@@ -1,37 +1,68 @@
-import { exec } from "child_process";
+import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
-import { promisify } from "util";
 //@ts-ignore
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import mime from "mime-types";
 import Redis from "ioredis";
 
-const execAsync = promisify(exec);
-
 const s3Client = new S3Client({
-  region: "ap-south-1",
+  region: "eu-north-1",
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
 
-const BUCKET_NAME = "rapid-serve-outputs";
+const BUCKET_NAME = "rapidserve.surajv.dev";
 const PROJECT_ID = process.env.PROJECT_ID;
+const GIT_REPOSITORY__URL = process.env.GIT_REPOSITORY__URL;
 
-if (!BUCKET_NAME || !PROJECT_ID) {
+if (!BUCKET_NAME || !PROJECT_ID || !GIT_REPOSITORY__URL) {
   console.error(
-    "ERROR: AWS_S3_BUCKET or PROJECT_ID is missing in environment variables.",
+    "Error: AWS_S3_BUCKET or PROJECT_ID or GIT_REPOSITORY__URL is missing in environment variables.",
   );
   process.exit(1);
 }
 
-const publisher = new Redis(process.env.REDIS_URL!);
+const publisher = new Redis(process.env.REDIS_URL!, {
+  tls: process.env.REDIS_URL?.startsWith("rediss://") ? {} : undefined,
+});
+
+// Optional: Add event listeners to debug connection issues
+publisher.on("connect", () => {
+  console.log("✅ Redis connected successfully");
+});
+
+publisher.on("error", (err) => {
+  console.error("❌ Redis connection error:", err);
+});
 
 function publishLog(log: string) {
   console.log(log);
   publisher.publish(`logs:${PROJECT_ID}`, JSON.stringify({ log }));
+}
+
+async function executeCommand(command: string, args: string[], cwd: string) {
+  return new Promise<void>((resolve, reject) => {
+    const p = spawn(command, args, { cwd, shell: true });
+
+    p.stdout.on("data", (data) => {
+      publishLog(data.toString());
+    });
+
+    p.stderr.on("data", (data) => {
+      publishLog(data.toString());
+    });
+
+    p.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Command ${command} exited with code ${code}`));
+      }
+    });
+  });
 }
 
 /**
@@ -62,41 +93,53 @@ function getAllFiles(directoryPath: string): string[] {
  */
 async function buildProject() {
   try {
-    publishLog("🚀 Starting the build process...");
+    publishLog("Starting the build process...");
 
     const outputDirectory = path.join(__dirname, "output");
 
+    publishLog("Cloning repository...");
+    await executeCommand(
+      "git",
+      ["clone", GIT_REPOSITORY__URL!, outputDirectory],
+      __dirname,
+    );
+
     if (!fs.existsSync(outputDirectory)) {
-      const error =
-        "❌ ERROR: Output directory not found. The cloning process might have failed.";
+      const error = "Error: Output directory not found after cloning.";
       console.error(error);
       publishLog(error);
       process.exit(1);
     }
 
-    publishLog("📦 Running npm install and build...");
+    publishLog("Running npm install...");
+    await executeCommand("npm", ["install"], outputDirectory);
 
-    await execAsync(`cd ${outputDirectory} && npm install && npm run build`);
+    publishLog("Running npm build...");
+    await executeCommand("npm", ["run", "build"], outputDirectory);
 
-    publishLog("✅ Build process completed successfully.");
+    publishLog("Build process completed successfully.");
 
     const buildOutputDirectory = path.join(outputDirectory, "dist");
 
     if (!fs.existsSync(buildOutputDirectory)) {
-      const error = "❌ ERROR: Build output directory (dist) not found.";
+      const error = "Error: Build output directory (dist) not found.";
       console.error(error);
       publishLog(error);
       process.exit(1);
     }
 
     const filesToUpload = getAllFiles(buildOutputDirectory);
-    publishLog(`📁 Found ${filesToUpload.length} files to upload.`);
+    publishLog(`Found ${filesToUpload.length} files to upload.`);
 
     await uploadFilesToS3(filesToUpload, buildOutputDirectory);
 
-    publishLog("✅ Deployment process completed successfully.");
+    publishLog("Deployment process completed successfully.");
+
+    // Cleanup
+    await publisher.quit();
+    process.exit(0);
   } catch (error: any) {
-    const msg = `❌ ERROR: Build process failed. ${error.message}`;
+    const msg = `Error: Build process failed. ${error.message}`;
     console.error(msg, error);
     publishLog(msg);
     process.exit(1);
@@ -107,36 +150,33 @@ async function buildProject() {
  * Uploads all files to the configured AWS S3 bucket.
  */
 async function uploadFilesToS3(files: string[], baseDirectory: string) {
-  await Promise.all(
-    files.map(async (filePath) => {
-      const relativeFilePath = path.relative(baseDirectory, filePath);
-      const mimeType = mime.lookup(filePath) || "application/octet-stream";
+  publishLog("Uploading files...");
 
-      publishLog(
-        `📤 Uploading file: ${relativeFilePath} (MIME Type: ${mimeType})`,
-      );
+  const uploadPromises = files.map(async (filePath) => {
+    const relativeFilePath = path.relative(baseDirectory, filePath);
+    const mimeType = mime.lookup(filePath) || "application/octet-stream";
 
-      const uploadCommand = new PutObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: `__outputs/${PROJECT_ID}/${relativeFilePath}`,
-        Body: fs.createReadStream(filePath),
-        ContentType: mimeType,
-      });
+    publishLog(`Uploading: ${relativeFilePath}`);
 
-      try {
-        await s3Client.send(uploadCommand);
-        publishLog(`✅ Upload successful: ${relativeFilePath}`);
-        await publisher.quit();
-        console.log("Container finished work, exiting...");
-        process.exit(0);
-      } catch (error: any) {
-        const msg = `❌ ERROR: Failed to upload ${relativeFilePath}. ${error.message}`;
-        console.error(msg);
-        publishLog(msg);
-        process.exit(1);
-      }
-    }),
-  );
+    const uploadCommand = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: `__outputs/${PROJECT_ID}/${relativeFilePath}`,
+      Body: fs.createReadStream(filePath),
+      ContentType: mimeType,
+    });
+
+    try {
+      await s3Client.send(uploadCommand);
+      publishLog(`Upload successful: ${relativeFilePath}`);
+    } catch (error: any) {
+      const msg = `Error: Failed to upload ${relativeFilePath}. ${error.message}`;
+      console.error(msg);
+      publishLog(msg);
+      throw error;
+    }
+  });
+
+  await Promise.all(uploadPromises);
 }
 
 buildProject();

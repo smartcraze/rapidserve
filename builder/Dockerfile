@@ -1,12 +1,9 @@
-FROM ubuntu:focal
-
-RUN apt-get update && \
-    apt-get install -y curl git dos2unix && \
-    curl -sL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
-    apt-get upgrade -y
+FROM node:20
 
 WORKDIR /home/app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y git dos2unix
 
 COPY package*.json tsconfig.json ./
 RUN npm install
