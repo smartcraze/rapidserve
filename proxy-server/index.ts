@@ -5,7 +5,7 @@ const app = express();
 const PORT = 8000;
 
 const BASE_PATH =
-  "https://rapid-serve-outputs.s3.ap-south-1.amazonaws.com/__outputs";
+  "https://s3.eu-north-1.amazonaws.com/rapidserve.surajv.dev/__outputs";
 
 const proxy = httpProxy.createProxyServer({});
 

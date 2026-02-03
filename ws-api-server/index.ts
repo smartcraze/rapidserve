@@ -4,11 +4,10 @@ import { subscriber } from "./redisClient";
 const channels: Record<string, Set<WebSocket>> = {};
 
 // Handle Redis messages globally
-subscriber.on("pmessage", (_pattern, channel, message) => {
+subscriber.on("pmessage", (pattern, channel, message) => {
+  console.log(`Received redis message on ${channel}`);
+
   if (channels[channel]) {
-    console.log(
-      `Broadcasting message from channel ${channel} to ${channels[channel].size} clients`,
-    );
     channels[channel].forEach((client) => {
       try {
         client.send(message);
@@ -76,7 +75,7 @@ Bun.serve({
               JSON.stringify({
                 status: "subscribed",
                 channel,
-                message: `Successfully subscribed to ${channel}`,
+                log: `🔌 Subscribed to logs for ${data.projectId}`, // Changed 'message' to 'log' to match frontend
               }),
             );
 

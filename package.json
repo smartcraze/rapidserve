@@ -6,6 +6,7 @@
   "private": true,
   "dependencies": {},
   "devDependencies": {
+    "concurrently": "^9.1.2",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.3",
     "prettier": "3.6.2"
@@ -14,6 +15,11 @@
     "**/*": "prettier --write --ignore-unknown"
   },
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev": "concurrently \"bun run dev:frontend\" \"bun run dev:proxy\" \"bun run dev:ws\" \"bun run dev:runner\"",
+    "dev:frontend": "cd frontend && bun run dev",
+    "dev:proxy": "cd proxy-server && bun run dev",
+    "dev:ws": "cd ws-api-server && bun run dev",
+    "dev:runner": "cd docker-runner && bun run dev"
   }
 }
