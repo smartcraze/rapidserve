@@ -1,7 +1,9 @@
+<img width="2414" height="1514" alt="image" src="https://github.com/user-attachments/assets/d69af205-a8b3-4ee2-bb1c-9c39f9d97d52" />
+
 # Builder Server + Redis Deployment
 
 This project is a **build and deployment server** that automatically builds your front-end project, uploads the build output to AWS S3, and publishes build logs to Redis. It runs inside Docker and is designed for **ephemeral, self-contained builds**.
-<img width="2414" height="1514" alt="image" src="https://github.com/user-attachments/assets/d69af205-a8b3-4ee2-bb1c-9c39f9d97d52" />
+
 
 ## video
 https://www.tella.tv/video/vid_cml6lghgs00e104jr2zxa0u56/embed?b=0&title=0&a=1&loop=0&t=0&muted=0&wt=0
