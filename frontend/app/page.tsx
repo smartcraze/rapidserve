@@ -1,21 +1,27 @@
-import { CtaSection } from "@/components/landing/cta-section";
-import { FeaturesSection } from "@/components/landing/features-section";
-import { HeroSection } from "@/components/landing/hero-section";
-import { SiteFooter } from "@/components/landing/site-footer";
-import { SiteHeader } from "@/components/landing/site-header";
-import { WorkflowSection } from "@/components/landing/workflow-section";
+import { BackgroundRippleEffectDemo } from "@/components/BackgroundRippleEffect";
+import { DemoVideo } from "@/components/demo-video";
+import { FeaturesSection } from "@/components/features";
+import { Navbar } from "@/components/navbar";
+import { CTAHero } from "@/components/cta-hero";
+import { Footer } from "@/components/footer";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 selection:text-foreground font-sans">
-      <SiteHeader />
+      {/* <SiteHeader />
       <main className="relative overflow-hidden">
         <HeroSection />
         <FeaturesSection />
         <WorkflowSection />
-        <CtaSection />
       </main>
-      <SiteFooter />
+      <SiteFooter /> */}
+      <Navbar />
+      <BackgroundRippleEffectDemo />
+      <DemoVideo />
+      <FeaturesSection />
+      <CTAHero />
+      <Footer />
+
     </div>
   );
 }

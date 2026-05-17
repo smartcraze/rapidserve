@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { Navbar } from "@/components/navbar";
 
 const API_URL = "http://localhost:9000";
 const SOCKET_URL = "http://localhost:9002";
@@ -56,6 +57,24 @@ export default function DeployPage() {
     return () => {
       socketRef.current?.disconnect();
     };
+  }, []);
+
+  useEffect(() => {
+    const authProvider = new URLSearchParams(window.location.search).get("auth");
+
+    if (authProvider !== "google") {
+      return;
+    }
+
+    if (window.opener && !window.opener.closed) {
+      window.opener.location.assign("/deploy");
+      window.close();
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("auth");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
   }, []);
 
   const connectSocket = (projectSlug: string) => {
@@ -124,8 +143,7 @@ export default function DeployPage() {
       const data = await res.json();
       console.log("Deployment initiated:", data);
 
-      const url = `http://${slug}.localhost:8000`;
-      setPreviewUrl(url);
+      setPreviewUrl(typeof data?.url === "string" ? data.url : "");
 
       // CHANGED: Removed polling as per user request to rely on logs
       // The success status will be triggered by the "Deployed" message in the logs
@@ -138,40 +156,35 @@ export default function DeployPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 selection:text-primary font-sans flex flex-col">
-      {/* Navbar */}
-      <motion.header
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="border-b border-border bg-background/50 backdrop-blur-md sticky top-0 z-50"
+      <Navbar />
+
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mx-auto mt-4 w-full max-w-7xl px-6"
       >
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
-            <a href="/" className="flex items-center gap-2">
-              <div className="bg-primary/10 p-2 rounded-lg">
-                <Cloud className="w-5 h-5 text-primary" />
-              </div>
-              <span>
-                Rapid<span className="text-primary">Serve</span>
-              </span>
-            </a>
+        <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-4 text-amber-50 shadow-lg shadow-amber-950/10 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-amber-200/80">
+              <Zap className="h-4 w-4" /> Service paused
+            </p>
+            <p className="text-sm leading-relaxed text-amber-50/90">
+              These deploy and preview services are currently paused. I&apos;m a student, so I can&apos;t keep them running forever.
+            </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3 md:items-end">
             <Badge
               variant="outline"
-              className="border-primary/30 text-primary bg-primary/5 hidden md:flex"
+              className="w-fit border-amber-300/30 bg-amber-400/10 text-amber-100"
             >
-              <Zap className="w-3 h-3 mr-1" /> Beta
+              Temporary pause
             </Badge>
-            <a
-              href="https://github.com/suraj/rapidserve"
-              target="_blank"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Github className="w-5 h-5" />
-            </a>
+            <Button asChild variant="outline" className="border-amber-300/40 bg-transparent text-amber-50 hover:bg-amber-400/10 hover:text-amber-50">
+              <a href="/#demo-video">Watch the homepage demo video</a>
+            </Button>
           </div>
         </div>
-      </motion.header>
+      </motion.div>
 
       <main className="flex-1 container mx-auto px-6 py-12 lg:py-20 flex flex-col lg:flex-row gap-12 lg:gap-20">
         {/* Left Panel: Hero & Form */}
@@ -184,7 +197,7 @@ export default function DeployPage() {
           >
             <h1 className="text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
               Deploy <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-500">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-orange-500">
                 Ship Faster.
               </span>
             </h1>
@@ -354,32 +367,42 @@ export default function DeployPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-2 p-2 bg-background/40 rounded border border-green-500/20">
-                    <a
-                      href={previewUrl}
-                      target="_blank"
-                      className="truncate text-green-400 hover:underline flex-1 text-sm font-mono"
-                    >
-                      {previewUrl}
-                    </a>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6 text-green-400 hover:text-green-300 hover:bg-green-500/20"
-                      onClick={() => navigator.clipboard.writeText(previewUrl)}
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
+                  {previewUrl ? (
+                    <>
+                      <div className="flex items-center gap-2 p-2 bg-background/40 rounded border border-green-500/20">
+                        <a
+                          href={previewUrl}
+                          target="_blank"
+                          className="truncate text-green-400 hover:underline flex-1 text-sm font-mono"
+                        >
+                          {previewUrl}
+                        </a>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 text-green-400 hover:text-green-300 hover:bg-green-500/20"
+                          onClick={() => navigator.clipboard.writeText(previewUrl)}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <div className="mt-4 flex flex-col gap-3">
+                        <Button
+                          className="w-full bg-green-500 text-black hover:bg-green-400 font-bold h-12"
+                          asChild
+                        >
+                          <a href={previewUrl} target="_blank">
+                            Visit Site <ArrowRight className="w-4 h-4 ml-2" />
+                          </a>
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rounded-md border border-green-500/20 bg-background/40 p-4 text-sm text-green-100/80">
+                      Preview URLs are unavailable while the services are paused.
+                    </div>
+                  )}
                   <div className="mt-4 flex flex-col gap-3">
-                    <Button
-                      className="w-full bg-green-500 text-black hover:bg-green-400 font-bold h-12"
-                      asChild
-                    >
-                      <a href={previewUrl} target="_blank">
-                        Visit Site <ArrowRight className="w-4 h-4 ml-2" />
-                      </a>
-                    </Button>
                     <Button
                       variant="ghost"
                       className="w-full text-green-400 hover:text-green-300 hover:bg-green-500/10"
@@ -427,10 +450,10 @@ export default function DeployPage() {
         </div>
 
         {/* Right Panel: Terminal / Logs */}
-        <div className="w-full lg:w-7/12 h-[600px] lg:h-[700px] flex flex-col">
+        <div className="w-full lg:w-7/12 h-150 lg:h-175 flex flex-col">
           <Card className="flex-1 border-border bg-card/80 backdrop-blur flex flex-col overflow-hidden shadow-2xl relative">
             <div
-              className="absolute top-0 w-full h-1 bg-gradient-to-r from-primary via-purple-500 to-primary animate-pulse"
+              className="absolute top-0 w-full h-1 bg-linear-to-r from-primary via-purple-500 to-primary animate-pulse"
               style={{ opacity: status === "deploying" ? 1 : 0 }}
             />
             <CardHeader className="bg-muted/30 border-b border-border py-3 px-4 flex flex-row items-center justify-between space-y-0">
