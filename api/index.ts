@@ -14,8 +14,8 @@ const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
 const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY;
 
 const config = {
-  CLUSTER: "builder-cluster-rapidserve",
-  TASK: "builder-task-def:2",
+  CLUSTER: "rapidserve-builder-cluster",
+  TASK: "builder-task-def:3",
 };
 
 if (!REDIS_URL) console.warn("Missing REDIS_URL");

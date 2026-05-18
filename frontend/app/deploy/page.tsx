@@ -8,11 +8,9 @@ import {
   Terminal,
   Loader2,
   Rocket,
-  Cloud,
   Github,
   CheckCircle2,
   AlertCircle,
-  Cpu,
   Zap,
   ArrowRight,
 } from "lucide-react";
@@ -25,16 +23,14 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 
 const API_URL = "http://localhost:9000";
-const SOCKET_URL = "http://localhost:9002";
+const SOCKET_URL = "http://localhost:8080";
 
 export default function DeployPage() {
   const [gitUrl, setGitUrl] = useState("");

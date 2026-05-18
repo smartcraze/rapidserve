@@ -4,7 +4,9 @@
   "description": "",
   "main": "",
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "ws": "^8.20.1"
+  },
   "devDependencies": {
     "concurrently": "^9.1.2",
     "husky": "^9.1.7",

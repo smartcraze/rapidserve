@@ -7,8 +7,15 @@ interface RunDockerRequest {
 }
 
 const app = express();
-const PORT = process.env.PORT || 4000;
-const docker = new Dockerode({ socketPath: "/var/run/docker.sock" });
+const PORT = 9000;
+const docker = (() => {
+  if (process.platform === "win32") {
+    // Docker Desktop on Windows exposes the engine over a named pipe
+    return new Dockerode({ socketPath: "//./pipe/docker_engine" });
+  }
+
+  return new Dockerode({ socketPath: "/var/run/docker.sock" });
+})();
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,41 +60,48 @@ function toDockerEnv(entries: Array<[string, string | undefined]>) {
 
 async function runDocker(projectId: string, gitURL: string) {
   const imageName = process.env.BUILDER_IMAGE ?? "rapidserve-builder";
-  const container = await docker.createContainer({
-    Image: imageName,
-    Tty: false,
-    AttachStdout: true,
-    AttachStderr: true,
-    Env: toDockerEnv([
-      ["PROJECT_ID", projectId],
-      ["GIT_REPOSITORY__URL", gitURL],
-      ["REDIS_URL", process.env.REDIS_URL],
-      ["AWS_REGION", process.env.AWS_REGION],
-      ["AWS_ACCESS_KEY_ID", process.env.AWS_ACCESS_KEY_ID],
-      ["AWS_SECRET_ACCESS_KEY", process.env.AWS_SECRET_ACCESS_KEY],
-    ]),
-    HostConfig: {
-      AutoRemove: true,
-    },
-  });
+  let container: any;
 
-  await container.start();
+  try {
+    container = await docker.createContainer({
+      Image: imageName,
+      Tty: false,
+      AttachStdout: true,
+      AttachStderr: true,
+      Env: toDockerEnv([
+        ["PROJECT_ID", projectId],
+        ["GIT_REPOSITORY__URL", gitURL],
+        ["REDIS_URL", process.env.REDIS_URL],
+        ["AWS_REGION", process.env.AWS_REGION],
+        ["AWS_ACCESS_KEY_ID", process.env.AWS_ACCESS_KEY_ID],
+        ["AWS_SECRET_ACCESS_KEY", process.env.AWS_SECRET_ACCESS_KEY],
+      ]),
+      HostConfig: {
+        AutoRemove: true,
+      },
+    });
 
-  void container.wait().catch((error: unknown) => {
-    console.error(`Container ${container.id} failed:`, error);
-  });
+    await container.start();
 
-  return {
-    containerId: container.id,
-    image: imageName,
-  };
+    void container.wait().catch((error: unknown) => {
+      console.error(`Container ${container.id} failed:`, error);
+    });
+
+    return {
+      containerId: container.id,
+      image: imageName,
+    };
+  } catch (err) {
+    console.error("Failed to create/start container:", err);
+    throw err;
+  }
 }
 
 app.get("/", (_req, res) => {
   res.send("Docker Runner is running.");
 });
 
-app.post("/rundocker", async (req, res) => {
+app.post("/project", async (req, res) => {
   try {
     const { projectId, gitURL } = req.body as RunDockerRequest;
 
