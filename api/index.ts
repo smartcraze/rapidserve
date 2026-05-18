@@ -48,6 +48,10 @@ const ecsClient = new ECSClient({
 
 app.use(cors());
 
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
 app.post("/project", async (req, res): Promise<any> => {
   // Correct destructuring with fail-safe logging
   const { gitURL, slug } = req.body || {};
