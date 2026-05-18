@@ -35,7 +35,7 @@ publisher.on("connect", () => {
 });
 
 publisher.on("error", (err) => {
-  console.error("❌ Redis connection error:", err);
+  console.error(" Redis connection error:", err);
 });
 
 function publishLog(log: string) {

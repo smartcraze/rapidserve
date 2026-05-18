@@ -1,86 +1,125 @@
-import { $ } from "bun";
+import express from "express";
+import Dockerode from "dockerode";
 
 interface RunDockerRequest {
   projectId: string;
   gitURL: string;
 }
 
-async function runDocker(projectId: string, gitURL: string) {
-  try {
-    const command = $`docker run --rm \
-      --env PROJECT_ID=${projectId} \
-      --env GIT_REPOSITORY__URL=${gitURL} \
-      --env REDIS_URL=${process.env.REDIS_URL} \
-      --env AWS_REGION=${process.env.AWS_REGION} \
-      --env AWS_ACCESS_KEY_ID=${process.env.AWS_ACCESS_KEY_ID} \
-      --env AWS_SECRET_ACCESS_KEY=${process.env.AWS_SECRET_ACCESS_KEY} \
-      rapidserve-builder`;
+const app = express();
+const PORT = process.env.PORT || 4000;
+const docker = new Dockerode({ socketPath: "/var/run/docker.sock" });
 
-    // We don't await the command here to allow "fire-and-forget"
-    // The logs will be streamed via Redis
-    command.catch((err) => {
-      console.error("Docker build failed:", err);
-    });
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
 
-    return "Build started in background";
-  } catch (err: any) {
-    console.error("Error:", err.message);
-    throw err;
+app.use(express.json());
+
+app.use((req, res, next) => {
+  Object.entries(corsHeaders).forEach(([header, value]) => {
+    res.setHeader(header, value);
+  });
+
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
   }
+
+  next();
+});
+
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+
+  return value;
 }
 
-const server = Bun.serve({
-  port: 4000,
-  async fetch(req) {
-    const url = new URL(req.url);
-
-    // Common CORS headers
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    };
-
-    // Handle Preflight OPTIONS request
-    if (req.method === "OPTIONS") {
-      return new Response(null, { headers: corsHeaders });
+function toDockerEnv(entries: Array<[string, string | undefined]>) {
+  return entries.reduce<string[]>((env, [key, value]) => {
+    if (value) {
+      env.push(`${key}=${value}`);
     }
 
-    if (url.pathname === "/") {
-      return new Response("Docker Runner is running.", {
-        headers: corsHeaders,
+    return env;
+  }, []);
+}
+
+async function runDocker(projectId: string, gitURL: string) {
+  const imageName = process.env.BUILDER_IMAGE ?? "rapidserve-builder";
+  const container = await docker.createContainer({
+    Image: imageName,
+    Tty: false,
+    AttachStdout: true,
+    AttachStderr: true,
+    Env: toDockerEnv([
+      ["PROJECT_ID", projectId],
+      ["GIT_REPOSITORY__URL", gitURL],
+      ["REDIS_URL", process.env.REDIS_URL],
+      ["AWS_REGION", process.env.AWS_REGION],
+      ["AWS_ACCESS_KEY_ID", process.env.AWS_ACCESS_KEY_ID],
+      ["AWS_SECRET_ACCESS_KEY", process.env.AWS_SECRET_ACCESS_KEY],
+    ]),
+    HostConfig: {
+      AutoRemove: true,
+    },
+  });
+
+  await container.start();
+
+  void container.wait().catch((error: unknown) => {
+    console.error(`Container ${container.id} failed:`, error);
+  });
+
+  return {
+    containerId: container.id,
+    image: imageName,
+  };
+}
+
+app.get("/", (_req, res) => {
+  res.send("Docker Runner is running.");
+});
+
+app.post("/rundocker", async (req, res) => {
+  try {
+    const { projectId, gitURL } = req.body as RunDockerRequest;
+
+    if (!projectId || !gitURL) {
+      return res.status(400).json({
+        status: "error",
+        message: "projectId and gitURL are required",
       });
     }
 
-    if (url.pathname === "/rundocker" && req.method === "POST") {
-      try {
-        const data = (await req.json()) as RunDockerRequest;
+    getRequiredEnv("REDIS_URL");
+    getRequiredEnv("AWS_REGION");
+    getRequiredEnv("AWS_ACCESS_KEY_ID");
+    getRequiredEnv("AWS_SECRET_ACCESS_KEY");
 
-        if (!data.projectId || !data.gitURL) {
-          return Response.json(
-            {
-              status: "error",
-              message: "projectId and gitURL are required",
-            },
-            { status: 400, headers: corsHeaders },
-          );
-        }
+    const output = await runDocker(projectId, gitURL);
 
-        const output = await runDocker(data.projectId, data.gitURL);
-        return Response.json(
-          { status: "success", output },
-          { headers: corsHeaders },
-        );
-      } catch (err: any) {
-        return Response.json(
-          { status: "error", message: err.message },
-          { status: 500, headers: corsHeaders },
-        );
-      }
-    }
+    return res.status(202).json({
+      status: "success",
+      output,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
 
-    return new Response("Not Found", { status: 404, headers: corsHeaders });
-  },
+    console.error("Docker runner error:", error);
+    return res.status(500).json({
+      status: "error",
+      message,
+    });
+  }
 });
 
-console.log(`Server running on http://${server.hostname}:${server.port}`);
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
