@@ -29,8 +29,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Navbar } from "@/components/navbar";
 
-const API_URL = "http://localhost:9000";
-const SOCKET_URL = "http://localhost:8080";
+const API_URL = "https://rapidserveapi.surajv.dev";
+const SOCKET_URL = "wss://rapidservews.surajv.dev";
+const PREVIEW_BASE_URL = "https://<project-slug>.proxy.surajv.dev";
 
 export default function DeployPage() {
   const [gitUrl, setGitUrl] = useState("");
@@ -139,7 +140,9 @@ export default function DeployPage() {
       const data = await res.json();
       console.log("Deployment initiated:", data);
 
-      setPreviewUrl(typeof data?.url === "string" ? data.url : "");
+      // setPreviewUrl(typeof data?.url === "string" ? data.url : "");
+
+      setPreviewUrl(PREVIEW_BASE_URL.replace("<project-slug>", slug));
 
       // CHANGED: Removed polling as per user request to rely on logs
       // The success status will be triggered by the "Deployed" message in the logs
@@ -154,6 +157,8 @@ export default function DeployPage() {
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 selection:text-primary font-sans flex flex-col">
       <Navbar />
 
+      {/* Service Pause Notice */}
+      {/* 
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -181,6 +186,8 @@ export default function DeployPage() {
           </div>
         </div>
       </motion.div>
+ */}
+
 
       <main className="flex-1 container mx-auto px-6 py-12 lg:py-20 flex flex-col lg:flex-row gap-12 lg:gap-20">
         {/* Left Panel: Hero & Form */}
