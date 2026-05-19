@@ -1,8 +1,13 @@
 "use client";
 
 import { motion } from "motion/react";
+import YouTube from 'react-youtube';
 
 export function DemoVideo() {
+    const handleReady = (event: any) => {
+        event.target.setPlaybackRate(2);
+    };
+
     return (
         <motion.div
             id="demo-video"
@@ -31,13 +36,23 @@ export function DemoVideo() {
 
                 <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/10 bg-black">
 
-                    <iframe
-                        src="https://www.tella.tv/video/vid_cml6lghgs00e104jr2zxa0u56/embed?b=0&title=0&a=1&loop=1&t=0&muted=1&wt=0"
-                        className="absolute inset-0 h-full w-full"
-                        allowFullScreen
-                        allow="autoplay; encrypted-media"
-                        title="RapidServe Demo"
-
+                    <YouTube
+                        videoId="0StRI_RemeQ"
+                        className="h-full w-full object-cover"
+                        opts={{
+                            height: '100%',
+                            width: '100%',
+                            playerVars: {
+                                autoplay: 1,
+                                controls: 0,
+                                modestbranding: 1,
+                                rel: 0,
+                                showinfo: 0,
+                                fs: 0,
+                                loop: 1,
+                            },
+                        }}
+                        onReady={handleReady}
                     />
 
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-linear-to-b from-black/40 to-transparent" />
