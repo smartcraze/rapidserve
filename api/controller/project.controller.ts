@@ -101,7 +101,7 @@ export const deployProject = asyncHandler(async (req: AuthenticatedRequest, res:
             .json(new ApiResponse(201, {
                 project,
                 deployment,
-                url: `http://${projectSlug}.localhost:8000`
+                url: `http://${projectSlug}.proxy.surajv.dev`
             }, "Deployment queued successfully"));
     } catch (error: any) {
         console.error("ECS Error:", error);
@@ -251,7 +251,7 @@ export const checkSlugAvailability = asyncHandler(async (req: AuthenticatedReque
     }
 
     const project = await findProjectBySlug(slug);
-    
+
     return res
         .status(200)
         .json(new ApiResponse(200, {
