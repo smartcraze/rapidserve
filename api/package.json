@@ -1,5 +1,5 @@
 {
-  "name": "api",
+  "name": "api-server",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -7,19 +7,31 @@
     "dev": "bun index.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/pg": "^8.20.0",
+    "prisma": "^7.8.0"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
     "@aws-sdk/client-ecs": "^3.981.0",
+    "@aws-sdk/client-s3": "^3.1061.0",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
     "ioredis": "^5.9.2",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.21.0",
     "random-word-slugs": "^0.1.7",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "zod": "^4.4.3"
   }
 }

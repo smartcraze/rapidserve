@@ -1,0 +1,117 @@
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+
+enum ProjectStatus {
+  QUEUED
+  BUILDING
+  READY
+  FAILED
+  STOPPED
+}
+
+enum DeploymentStatus {
+  QUEUED
+  BUILDING
+  SUCCESS
+  FAILED
+}
+
+
+model User {
+  id          String    @id @default(cuid())
+
+  name        String?
+  username    String?   @unique
+  email       String    @unique
+  passwordHash String
+  image       String?
+
+  resetToken        String?
+  resetTokenExpires DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  projects    Project[]
+  deployments Deployment[]
+
+  @@index([email])
+  @@index([resetToken])
+}
+
+
+model Project {
+  id            String        @id @default(cuid())
+
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name          String
+  slug          String        @unique
+
+  framework     String?       // only support vite for now
+
+  githubUrl     String?
+
+
+  subdomain     String        @unique
+  status        ProjectStatus @default(QUEUED)
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  deployments   Deployment[]
+  logs          Log[]
+
+  @@index([userId])
+  @@index([subdomain])
+  @@index([slug])
+}
+
+
+model Deployment {
+  id              String            @id @default(cuid())
+  projectId       String
+  project         Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status          DeploymentStatus  @default(QUEUED)
+  deployedUrl     String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  logs            Log[]
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([status])
+}
+
+
+
+model Log {
+  id              String        @id @default(cuid())
+  projectId       String
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  deploymentId    String?
+  deployment      Deployment?   @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+
+  message         String        @db.Text
+  level           String?       // info,error,warn
+
+  createdAt       DateTime      @default(now())
+
+  @@index([projectId])
+  @@index([deploymentId])
+}
+
