@@ -35,14 +35,13 @@ console.log("Socket Server running on port 9002");
 
 
 app.use(cors());
-app.use("/users", userRouter);
-app.use("/projects", projectRouter);
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-
+app.use("/users", userRouter);
+app.use("/projects", projectRouter);
 
 
 
