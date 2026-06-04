@@ -189,8 +189,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-            <Badge variant="outline" className="border-green-500/30 bg-green-500/5 text-green-400 gap-1 text-[11px] font-semibold py-0.5">
+            <h1 className="text-4xl font-black tracking-tight font-display">{project.name}</h1>
+            <Badge variant="outline" className="border-green-500/30 bg-green-500/5 text-green-600 dark:text-green-400 gap-1 text-[11px] font-semibold py-0.5">
               <CheckCircle className="size-3" />
               Active
             </Badge>

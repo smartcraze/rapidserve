@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { getAuthUser } from "@/lib/auth-custom";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navItems = [
   {
@@ -40,14 +41,14 @@ export function Navbar() {
 
   return (
     <header className="w-full py-4">
-      <div className="mx-auto flex max-w-7xl items-center justify-between rounded-2xl border border-white/10 px-6 py-4 backdrop-blur bg-foreground/5">
+      <div className="mx-auto flex max-w-7xl items-center justify-between rounded-2xl border border-border/60 px-6 py-4 backdrop-blur bg-foreground/5">
         <Link href="/">
           <Image
             src="/full-logo.png"
             alt="RapidServe"
             width={150}
             height={150}
-            className="object-contain mix-blend-screen"
+            className="object-contain dark:mix-blend-screen mix-blend-difference filter invert dark:invert-0"
             priority
           />
         </Link>
@@ -56,7 +57,7 @@ export function Navbar() {
             <Link
               key={item.label}
               href={item.href}
-              className="text-[15px] font-medium text-white/60 transition hover:text-white"
+              className="text-base font-medium text-foreground/60 transition hover:text-foreground"
             >
               {item.label}
             </Link>
@@ -65,12 +66,14 @@ export function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-4">
+          <ThemeToggle />
+          
           {activeUser ? (
             <Link
               href="/dashboard"
-              className="hidden items-center gap-3 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-white/80 transition hover:bg-white/10 md:inline-flex"
+              className="hidden items-center gap-3 rounded-full border border-border/60 bg-foreground/5 px-3 py-1.5 text-sm font-medium text-foreground/80 transition hover:bg-foreground/10 md:inline-flex"
             >
-              <span className="relative h-8 w-8 overflow-hidden rounded-full border border-white/15 bg-white/10">
+              <span className="relative h-8 w-8 overflow-hidden rounded-full border border-border/80 bg-foreground/10">
                 {activeUser.image ? (
                   <Image
                     src={activeUser.image}
@@ -79,7 +82,7 @@ export function Navbar() {
                     className="object-cover"
                   />
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white/80">
+                  <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-foreground/80">
                     {(activeUser.name || activeUser.email || "U")
                       .charAt(0)
                       .toUpperCase()}
@@ -94,7 +97,7 @@ export function Navbar() {
             <Button
               asChild
               variant="ghost"
-              className="hidden text-[15px] font-medium text-white/70 hover:bg-white/5 hover:text-white md:inline-flex"
+              className="hidden text-base font-medium text-foreground/70 hover:bg-foreground/5 hover:text-foreground md:inline-flex"
             >
               <Link href="/signin">Sign in</Link>
             </Button>

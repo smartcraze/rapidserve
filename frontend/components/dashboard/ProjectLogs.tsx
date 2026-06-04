@@ -53,8 +53,8 @@ export function ProjectLogs({
             variant="outline"
             className={`text-[10px] uppercase font-bold py-0 ${
               socketConnected
-                ? "border-green-500/30 text-green-400 bg-green-500/5"
-                : "border-amber-500/30 text-amber-400 bg-amber-500/5"
+                ? "border-green-500/30 text-green-600 dark:text-green-400 bg-green-500/5"
+                : "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/5"
             }`}
           >
             {socketConnected ? "Streaming" : "Disconnected"}

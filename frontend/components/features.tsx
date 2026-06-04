@@ -34,11 +34,11 @@ export function FeaturesSection() {
                         variants={fadeInUp}
                         className="flex flex-col items-center text-center"
                     >
-                        <h1 className="text-5xl font-extrabold leading-[0.95] tracking-[-0.05em] text-foreground sm:text-6xl lg:text-7xl lg:whitespace-nowrap">
+                        <h1 className="text-5xl font-black leading-[1.1] tracking-tight text-foreground sm:text-6xl lg:text-7xl font-display">
                             A calm, precise deployment console
                         </h1>
 
-                        <p className="mt-6 max-w-3xl text-lg leading-8 text-muted-foreground sm:text-xl">
+                        <p className="mt-6 max-w-3xl text-xl leading-relaxed text-muted-foreground sm:text-2xl tracking-wide">
                             Deploy from your repository and get clear, live feedback — fast
                             and focused on the experience.
                         </p>
@@ -68,11 +68,11 @@ export function FeaturesSection() {
                                                 </div>
 
                                                 <div>
-                                                    <h3 className="text-2xl font-semibold leading-tight text-white">
+                                                    <h3 className="text-xl font-extrabold leading-tight text-zinc-900 dark:text-white font-display tracking-tight">
                                                         {feature.title}
                                                     </h3>
 
-                                                    <p className="mt-3 max-w-xs text-base leading-7 text-neutral-300">
+                                                    <p className="mt-3 max-w-xs text-base leading-relaxed text-neutral-600 dark:text-neutral-300">
                                                         {feature.desc}
                                                     </p>
                                                 </div>

@@ -247,7 +247,7 @@ function DashboardContent() {
               <CardHeader className="pb-4">
                 <div className="flex justify-between items-start">
                   <h2 className="text-xl font-bold truncate max-w-[70%]">{project.name}</h2>
-                  <Badge variant="outline" className="border-green-500/30 bg-green-500/5 text-green-400 gap-1 text-[10px]">
+                  <Badge variant="outline" className="border-green-500/30 bg-green-500/5 text-green-600 dark:text-green-400 gap-1 text-[10px]">
                     <CheckCircle className="size-3" /> Ready
                   </Badge>
                 </div>
@@ -305,7 +305,7 @@ function DashboardContent() {
                     <Github className="size-3.5" /> {getCleanGitRepo(proj.githubUrl)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="border-green-500/30 bg-green-500/5 text-green-400 text-[10px] py-0">
+                    <Badge variant="outline" className="border-green-500/30 bg-green-500/5 text-green-600 dark:text-green-400 text-[10px] py-0">
                       Active
                     </Badge>
                   </TableCell>
@@ -394,7 +394,7 @@ function DashboardContent() {
       {/* Welcome banner & Stats */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold tracking-tight capitalize">{currentTab}</h1>
+          <h1 className="text-4xl font-black tracking-tight capitalize font-display">{currentTab}</h1>
           <p className="text-sm text-muted-foreground">
             Manage your personal Fargate cloud containers, builds, and settings.
           </p>
@@ -410,7 +410,7 @@ function DashboardContent() {
           </DialogTrigger>
           <DialogContent className="border-border bg-card max-w-md">
             <DialogHeader className="flex flex-col gap-1">
-              <DialogTitle className="text-xl">Create and Deploy Project</DialogTitle>
+              <DialogTitle className="text-xl font-bold font-display">Create and Deploy Project</DialogTitle>
               <DialogDescription>
                 Connect a GitHub repository to trigger a Fargate container build.
               </DialogDescription>
@@ -464,7 +464,7 @@ function DashboardContent() {
                   <p className="text-[11px] text-destructive font-medium mt-0.5">{slugError}</p>
                 )}
                 {!slugError && slug && !checkingSlug && (
-                  <p className="text-[11px] text-green-400 font-medium mt-0.5">Slug is available!</p>
+                  <p className="text-[11px] text-green-600 dark:text-green-400 font-medium mt-0.5">Slug is available!</p>
                 )}
               </div>
 

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { getAuthToken, getAuthUser, logout, User } from "@/lib/auth-custom";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 function DashboardNav({ user, handleLogout }: { user: User; handleLogout: () => void }) {
   const pathname = usePathname();
@@ -37,11 +38,11 @@ function DashboardNav({ user, handleLogout }: { user: User; handleLogout: () => 
               alt="RapidServe"
               width={130}
               height={32}
-              className="object-contain mix-blend-screen"
+              className="object-contain dark:mix-blend-screen mix-blend-difference filter invert dark:invert-0"
               priority
             />
           </Link>
-
+          
           {/* Scope Selector */}
           <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-border/50">
             <Avatar className="size-6 border border-border">
@@ -78,29 +79,32 @@ function DashboardNav({ user, handleLogout }: { user: User; handleLogout: () => 
         </div>
 
         {/* User profile dropdown and Logout */}
-        <div className="border-t border-border pt-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start gap-3 p-2 h-auto hover:bg-muted/40 rounded-lg">
-                <Avatar className="size-8 border border-border">
-                  <AvatarImage src={user.image || ""} />
-                  <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
-                    {(user.name || user.email).charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col text-left truncate">
-                  <span className="text-sm font-medium leading-none truncate">{user.name || "User"}</span>
-                  <span className="text-[11px] text-muted-foreground truncate mt-0.5">{user.email}</span>
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 border-border bg-card" align="start" side="top" forceMount>
-              <DropdownMenuItem onClick={handleLogout} className="focus:bg-destructive/10 text-destructive focus:text-destructive cursor-pointer flex items-center gap-2">
-                <LogOut className="size-4" />
-                <span>Log out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="border-t border-border pt-4 flex items-center justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start gap-3 p-2 h-auto hover:bg-muted/40 rounded-lg">
+                  <Avatar className="size-8 border border-border">
+                    <AvatarImage src={user.image || ""} />
+                    <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
+                      {(user.name || user.email).charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col text-left truncate">
+                    <span className="text-sm font-medium leading-none truncate">{user.name || "User"}</span>
+                    <span className="text-[11px] text-muted-foreground truncate mt-0.5">{user.email}</span>
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 border-border bg-card" align="start" side="top" forceMount>
+                <DropdownMenuItem onClick={handleLogout} className="focus:bg-destructive/10 text-destructive focus:text-destructive cursor-pointer flex items-center gap-2">
+                  <LogOut className="size-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <ThemeToggle />
         </div>
       </aside>
 
@@ -125,7 +129,7 @@ function DashboardNav({ user, handleLogout }: { user: User; handleLogout: () => 
                     alt="RapidServe"
                     width={110}
                     height={28}
-                    className="object-contain mix-blend-screen"
+                    className="object-contain dark:mix-blend-screen mix-blend-difference filter invert dark:invert-0"
                   />
                 </Link>
                 <nav className="flex flex-col gap-1.5">
@@ -165,18 +169,21 @@ function DashboardNav({ user, handleLogout }: { user: User; handleLogout: () => 
               alt="RapidServe"
               width={100}
               height={26}
-              className="object-contain mix-blend-screen"
+              className="object-contain dark:mix-blend-screen mix-blend-difference filter invert dark:invert-0"
             />
           </Link>
         </div>
 
-        {/* Mini profile avatar on mobile header */}
-        <Avatar className="size-8 border border-border">
-          <AvatarImage src={user.image || ""} />
-          <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
-            {(user.name || user.email).charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+        {/* Mini profile avatar and theme toggle on mobile header */}
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <Avatar className="size-8 border border-border">
+            <AvatarImage src={user.image || ""} />
+            <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
+              {(user.name || user.email).charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        </div>
       </header>
 
       {/* Global Sub-tabs (Vercel Style Tab Bar, only shown when on the overview/main dashboard page) */}

@@ -10,10 +10,10 @@ export function CTAHero() {
         <div className="rounded-2xl border border-border/20 bg-primary/90 px-8 py-12 shadow-2xl backdrop-blur-md">
           <div className="grid grid-cols-1 md:grid-cols-12 items-center gap-6">
             <div className="md:col-span-7">
-              <h2 className="mt-3 text-4xl font-extrabold leading-tight  sm:text-5xl text-zinc-950">
+              <h2 className="mt-3 text-4xl font-black leading-tight sm:text-5xl text-zinc-950 font-display tracking-tight">
                 Ready to turn the repo into a running deployment?
               </h2>
-              <p className="mt-4 max-w-2xl text-lg text-neutral-800 ">
+              <p className="mt-4 max-w-2xl text-xl leading-relaxed text-neutral-800">
                 Open the console, enter the GitHub URL, and let the pipeline <br /> stream back a clean, understandable deployment flow.
               </p>
             </div>
