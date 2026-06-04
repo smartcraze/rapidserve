@@ -18,6 +18,8 @@ export const metadata: Metadata = {
     "A platform to run your Docker projects from Git repositories seamlessly.",
 };
 
+import { Toaster } from "@/components/ui/sonner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,6 +31,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <Toaster closeButton position="bottom-right" richColors />
       </body>
     </html>
   );

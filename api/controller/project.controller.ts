@@ -7,9 +7,10 @@ import { asyncHandler } from "../lib/asyncHandler";
 import { ApiError } from "../lib/ApiError";
 import { ApiResponse } from "../lib/ApiResponse";
 import type { AuthenticatedRequest } from "../middleware/auth.middleware";
-import { deleteS3Folder } from "../lib/s3";
+import { deleteS3Folder, renameS3Folder } from "../lib/s3";
 import {
     findProjectBySlug,
+    findProjectBySubdomain,
     createProject,
     createDeployment,
     findProjectsByUserId,
@@ -85,7 +86,7 @@ export const deployProject = asyncHandler(async (req: AuthenticatedRequest, res:
                     name: "rapidserveimagebuildier",
                     environment: [
                         { name: "GIT_REPOSITORY__URL", value: gitURL },
-                        { name: "PROJECT_ID", value: projectSlug },
+                        { name: "PROJECT_ID", value: project.subdomain },
                         { name: "DEPLOYMENT_ID", value: deployment.id }
                     ],
                 },
@@ -175,6 +176,28 @@ export const updateProjectController = asyncHandler(async (req: AuthenticatedReq
         throw new ApiError(403, "Access denied");
     }
 
+    const oldSubdomain = project.subdomain;
+    const newSubdomain = parsed.data.subdomain;
+
+    if (newSubdomain && newSubdomain !== oldSubdomain) {
+        // 1. Check if subdomain is already taken
+        const existingProject = await findProjectBySubdomain(newSubdomain);
+        if (existingProject) {
+            throw new ApiError(400, "Subdomain is already taken by another project");
+        }
+
+        // 2. Rename folder in S3
+        try {
+            await renameS3Folder({
+                oldPrefix: `__outputs/${oldSubdomain}/`,
+                newPrefix: `__outputs/${newSubdomain}/`,
+            });
+        } catch (error: any) {
+            console.error("Failed to rename S3 static assets folder:", error);
+            throw new ApiError(500, `Failed to update S3 deployment prefix: ${error.message}`);
+        }
+    }
+
     const updated = await updateProject(id, parsed.data);
     return res
         .status(200)
@@ -201,7 +224,7 @@ export const deleteProjectController = asyncHandler(async (req: AuthenticatedReq
     }
 
     // Delete static assets in S3
-    const prefix = `__outputs/${project.slug}/`;
+    const prefix = `__outputs/${project.subdomain}/`;
     try {
         await deleteS3Folder({ prefix });
         console.log(`Deleted S3 folder with prefix: ${prefix}`);
@@ -215,4 +238,26 @@ export const deleteProjectController = asyncHandler(async (req: AuthenticatedReq
     return res
         .status(200)
         .json(new ApiResponse(200, null, "Project and associated deployments deleted successfully"));
+});
+
+export const checkSlugAvailability = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const user = req.user;
+    if (!user) {
+        throw new ApiError(401, "Unauthorized");
+    }
+    const { slug } = req.params;
+    if (!slug || typeof slug !== "string") {
+        throw new ApiError(400, "Slug parameter is required");
+    }
+
+    const project = await findProjectBySlug(slug);
+    
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {
+            available: !project,
+            exists: !!project,
+            ownedByUser: project ? project.userId === user.userId : false,
+            projectId: project ? project.id : null
+        }, "Slug availability check completed"));
 });

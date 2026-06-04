@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { signInWithGooglePopup } from "@/lib/auth-client";
-import { authClient } from "@/lib/auth-client";
+import { getAuthUser } from "@/lib/auth-custom";
 
 const navItems = [
   {
@@ -23,32 +22,35 @@ const navItems = [
 ];
 
 export function Navbar() {
-  const [isSigningIn, setIsSigningIn] = useState(false);
-  const { data: session } = authClient.useSession();
+  const [customUser, setCustomUser] = useState<any>(null);
 
-  const handleSignIn = async () => {
-    if (isSigningIn) return;
+  useEffect(() => {
+    // Load custom user on mount (client-side only to prevent hydration mismatch)
+    setCustomUser(getAuthUser());
+  }, []);
 
-    setIsSigningIn(true);
-
-    try {
-      await signInWithGooglePopup(`${window.location.origin}/deploy?auth=google`);
-    } finally {
-      setIsSigningIn(false);
-    }
-  };
+  // Determine active user profile (Custom JWT login only)
+  const activeUser = customUser
+    ? {
+        name: customUser.name,
+        email: customUser.email,
+        image: customUser.image,
+      }
+    : null;
 
   return (
     <header className="w-full py-4">
       <div className="mx-auto flex max-w-7xl items-center justify-between rounded-2xl border border-white/10 px-6 py-4 backdrop-blur bg-foreground/5">
-        <Image
-          src="/full-logo.png"
-          alt="RapidServe"
-          width={150}
-          height={150}
-          className="object-contain mix-blend-screen"
-          priority
-        />
+        <Link href="/">
+          <Image
+            src="/full-logo.png"
+            alt="RapidServe"
+            width={150}
+            height={150}
+            className="object-contain mix-blend-screen"
+            priority
+          />
+        </Link>
         <nav className="hidden items-center gap-10 md:flex">
           {navItems.map((item) => (
             <Link
@@ -63,45 +65,45 @@ export function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-4">
-          {session?.user ? (
+          {activeUser ? (
             <Link
-              href="/deploy"
+              href="/dashboard"
               className="hidden items-center gap-3 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-white/80 transition hover:bg-white/10 md:inline-flex"
             >
               <span className="relative h-8 w-8 overflow-hidden rounded-full border border-white/15 bg-white/10">
-                {session.user.image ? (
+                {activeUser.image ? (
                   <Image
-                    src={session.user.image}
-                    alt={session.user.name || "User profile"}
+                    src={activeUser.image}
+                    alt={activeUser.name || "User profile"}
                     fill
                     className="object-cover"
                   />
                 ) : (
                   <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white/80">
-                    {(session.user.name || session.user.email || "U")
+                    {(activeUser.name || activeUser.email || "U")
                       .charAt(0)
                       .toUpperCase()}
                   </span>
                 )}
               </span>
               <span className="max-w-40 truncate">
-                {session.user.name || "Your profile"}
+                {activeUser.name || "Your profile"}
               </span>
             </Link>
           ) : (
             <Button
-              type="button"
+              asChild
               variant="ghost"
               className="hidden text-[15px] font-medium text-white/70 hover:bg-white/5 hover:text-white md:inline-flex"
-              onClick={handleSignIn}
-              disabled={isSigningIn}
             >
-              {isSigningIn ? "Opening..." : "Sign in"}
+              <Link href="/signin">Sign in</Link>
             </Button>
           )}
 
           <Button asChild variant="secondary">
-            <Link href="/deploy">Get started</Link>
+            <Link href={activeUser ? "/dashboard" : "/signup"}>
+              {activeUser ? "Dashboard" : "Get started"}
+            </Link>
           </Button>
         </div>
       </div>

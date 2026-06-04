@@ -18,6 +18,10 @@ export const findProjectBySlug = (slug: string) => {
     return prisma.project.findUnique({ where: { slug } });
 };
 
+export const findProjectBySubdomain = (subdomain: string) => {
+    return prisma.project.findUnique({ where: { subdomain } });
+};
+
 export const createProject = (input: CreateProjectInput) => {
     return prisma.project.create({ data: input });
 };

@@ -40,8 +40,8 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-app.use("/users", userRouter);
-app.use("/projects", projectRouter);
+app.use("/api/v1/users", userRouter);
+app.use("/api/v1/projects", projectRouter);
 
 
 
