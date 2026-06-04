@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun --watch index.ts",
     "build": "bun build index.ts --outdir dist --target bun --minify",
-    "start": "bun run build && bun run dist/index.js",
+    "start": "bun run build && bun dist/index.js",
     "postinstall": "prisma generate"
   },
   "devDependencies": {
