@@ -1,22 +1,21 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Outfit, Fira_Code } from "next/font/google";
+import { Geist, Lora, Fira_Code } from "next/font/google";
 import "./globals.css";
 
-const sans = Plus_Jakarta_Sans({
-  variable: "--font-sans-custom",
+const fontSans = Geist({
   subsets: ["latin"],
+  variable: "--font-sans",
 });
 
-const display = Outfit({
-  variable: "--font-display-custom",
+const fontSerif = Lora({
   subsets: ["latin"],
+  variable: "--font-serif",
 });
 
-const mono = Fira_Code({
-  variable: "--font-mono-custom",
+const fontMono = Fira_Code({
   subsets: ["latin"],
+  variable: "--font-mono",
 });
-
 export const metadata: Metadata = {
   title: "Rapidserve",
   description:
@@ -33,9 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${sans.variable} ${display.variable} ${mono.variable} antialiased font-sans`}
-      >
+      <body className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

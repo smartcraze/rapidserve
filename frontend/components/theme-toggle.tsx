@@ -1,9 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme();
@@ -15,9 +13,9 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <Button variant="ghost" size="icon" className="size-9" disabled>
-        <Sun className="size-4" />
-      </Button>
+      <div className="flex size-9 items-center justify-center opacity-50">
+        <ThemeIcon />
+      </div>
     );
   }
 
@@ -26,18 +24,35 @@ export function ThemeToggle() {
   };
 
   return (
-    <Button
-      variant="outline"
-      size="icon"
+    <button
       onClick={toggleTheme}
-      className="size-9"
+      aria-label="Toggle theme"
+      className="cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95"
     >
-      {resolvedTheme === "dark" ? (
-        <Sun className="size-4" />
-      ) : (
-        <Moon className="size-4" />
-      )}
-      <span className="sr-only">Toggle theme</span>
-    </Button>
+      <ThemeIcon dark={resolvedTheme === "dark"} />
+    </button>
+  );
+}
+
+function ThemeIcon({ dark = false }: { dark?: boolean }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={dark ? "#f8fafc" : "#0f172a"}
+      strokeWidth="1"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="transition-all duration-300"
+    >
+      <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+      <path d="M12 3v18" />
+      <path d="M12 14l7 -7" />
+      <path d="M12 19l8.5 -8.5" />
+      <path d="M12 9l4.5 -4.5" />
+    </svg>
   );
 }
