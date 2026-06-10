@@ -52,8 +52,8 @@ export function ProjectOverview({
             <div className="flex flex-col gap-1">
               <span className="text-xs text-muted-foreground uppercase">Subdomain Domain</span>
               <span className="text-sm font-mono text-primary hover:underline">
-                <a href={`https://${project.subdomain}.proxy.surajv.dev`} target="_blank" rel="noreferrer">
-                  {project.subdomain}.proxy.surajv.dev
+                <a href={`https://${project.subdomain}.rapidserve.fun`} target="_blank" rel="noreferrer">
+                  {project.subdomain}.rapidserve.fun
                 </a>
               </span>
             </div>
