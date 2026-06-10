@@ -1,55 +1,78 @@
 import express from "express";
+import http from "http";
 import { Server } from "socket.io";
 import Redis from "ioredis";
 import cors from "cors";
+
 import { userRouter } from "./routes/user.routes";
 import { projectRouter } from "./routes/project.routes";
 import { errorHandler } from "./middleware/error.middleware";
 import { env } from "./lib/env";
 
 const app = express();
+
 const PORT = 9000;
+
 app.use(express.json());
 
-const REDIS_URL = env.REDIS_URL;
-if (!REDIS_URL) console.warn("Missing REDIS_URL");
+app.use(
+  cors({
+    origin: "*",
+  })
+);
 
-const subscriber = new Redis(REDIS_URL!);
+const server = http.createServer(app);
 
-const io = new Server({
+const io = new Server(server, {
   cors: {
     origin: "*",
   },
 });
 
+const REDIS_URL = env.REDIS_URL;
+
+if (!REDIS_URL) {
+  console.warn("Missing REDIS_URL");
+}
+
+const subscriber = new Redis(REDIS_URL!);
+
 io.on("connection", (socket) => {
-  socket.on("subscribe", (channel) => {
+  console.log("Client connected:", socket.id);
+
+  socket.on("subscribe", (channel: string) => {
+    console.log(`Socket subscribed to ${channel}`);
+
     socket.join(channel);
+
     socket.emit("message", `Joined ${channel}`);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
   });
 });
 
-io.listen(9002);
-console.log("Socket Server running on port 9002");
-
-
-
-app.use(cors());
-
-app.get("/health", (req, res) => {
-  res.json({ status: "ok" });
+app.get("/health", (_, res) => {
+  res.json({
+    status: "ok",
+  });
 });
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/projects", projectRouter);
 
-
-
 async function initRedisSubscribe() {
   console.log("Subscribed to logs....");
-  subscriber.psubscribe("logs:*");
-  subscriber.on("pmessage", (pattern, channel, message) => {
+
+  await subscriber.psubscribe("logs:*");
+
+  subscriber.on("pmessage", (_, channel, message) => {
     io.to(channel).emit("message", message);
+  });
+
+  subscriber.on("error", (err) => {
+    console.error("Redis Error:", err);
   });
 }
 
@@ -57,4 +80,12 @@ initRedisSubscribe();
 
 app.use(errorHandler);
 
-app.listen(PORT, () => console.log(`API Server Running..${PORT}`));
+server.listen(PORT, () => {
+  console.log(`API + Socket Server Running on ${PORT}`);
+});
+
+process.on("SIGINT", async () => {
+  await subscriber.quit();
+
+  process.exit(0);
+});
