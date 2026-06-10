@@ -76,7 +76,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
 
   const connectLogs = (subdomain: string) => {
     socketRef.current?.disconnect();
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:9002";
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "ws://localhost:9000";
     setLogs(["🔌 Connecting to build log server..."]);
 
     const socket = io(socketUrl);
@@ -197,8 +197,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
           </div>
           <p className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
             <Globe className="size-3" />
-            <a href={`https://${project.subdomain}.proxy.surajv.dev`} target="_blank" rel="noreferrer" className="hover:underline hover:text-foreground">
-              {project.subdomain}.proxy.surajv.dev
+            <a href={`https://${project.subdomain}.rapidserve.fun`} target="_blank" rel="noreferrer" className="hover:underline hover:text-foreground">
+              {project.subdomain}.rapidserve.fun
             </a>
           </p>
         </div>
@@ -209,7 +209,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
             Redeploy
           </Button>
           <Button asChild className="font-semibold gap-1.5">
-            <a href={`https://${project.subdomain}.proxy.surajv.dev`} target="_blank" rel="noreferrer">
+            <a href={`https://${project.subdomain}.rapidserve.fun`} target="_blank" rel="noreferrer">
               Visit Site
             </a>
           </Button>
